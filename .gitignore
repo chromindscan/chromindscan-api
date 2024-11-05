@@ -172,3 +172,6 @@ dist
 
 # IntelliJ based IDEs
 .idea
+
+logs/
+__pycache__/
