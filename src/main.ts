@@ -2,7 +2,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
-import { openaiRouter } from "./openaiRouter.ts";
+import { openaiRouter } from "./routes/openaiRouter";
+import { apiKeysRouter } from "./routes/route";
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/v1", openaiRouter);
+app.use("/v1/api", apiKeysRouter); // New route for API keys
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

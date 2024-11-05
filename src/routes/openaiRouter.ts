@@ -1,11 +1,8 @@
 import OpenAI from "openai";
 import { Router } from "express";
-import { addLog } from "./chromia.ts";
-import { whitelistMiddleware } from "./whitelistMiddleware.ts";
+import { addLog } from "../models/chromia";
 
 const router = Router();
-
-// router.use(whitelistMiddleware);
 
 router.get("/", (req, res) => {
   res.send("OpenAI Compatible Router on Chromia");
