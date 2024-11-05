@@ -7,23 +7,23 @@ async function main() {
   const apiTypes = [
     {
       name: 'OpenAI',
-      base_url: 'https://api.openai.com/v1',
+      base_url: 'https://api.openai.com/v1/chat/completions',
     },
     {
       name: 'Groq',
-      base_url: 'https://api.groq.com/v1',
+      base_url: 'https://api.groq.com/openai/v1/chat/completions',
     },
     {
       name: 'x-Grok',
-      base_url: 'https://api.x.ai/v1',
+      base_url: 'https://api.x.ai/v1/chat/completions',
     },
     {
       name: 'OpenRouter',
-      base_url: 'https://openrouter.ai/api/v1',
+      base_url: 'https://openrouter.ai/api/v1/chat/completions',
     },
     {
       name: 'TogetherAI',
-      base_url: 'https://api.together.xyz/v1',
+      base_url: 'https://api.together.xyz/v1/completions',
     },
   ];
 
