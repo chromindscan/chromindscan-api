@@ -14,7 +14,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/v1", openaiRouter);
-app.use("/v1/api", apiKeysRouter); // New route for API keys
+app.use("/api-key", apiKeysRouter);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
