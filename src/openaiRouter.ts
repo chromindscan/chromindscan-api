@@ -11,6 +11,31 @@ router.get("/", (req, res) => {
   res.send("OpenAI Compatible Router on Chromia");
 });
 
+router.get("/models", async (req, res) => {
+  const authorization = req.headers["authorization"];
+  if (!authorization) {
+    res.status(401).send("Unauthorized");
+    return;
+  } 
+
+  const openAIBaseUrl =
+    req.headers["x-openai-base-url"] || "https://api.openai.com/v1";
+  const baseURL = typeof openAIBaseUrl === "string" ? openAIBaseUrl : openAIBaseUrl[0];
+
+  const openai = new OpenAI({
+    apiKey: authorization.replace("Bearer ", ""),
+    baseURL,
+  });
+
+  try {
+    const response = await openai.models.list();
+    res.json(response);
+  } catch (error) {
+    console.error("Error forwarding request to OpenAI API:", error);
+    res.status(500).send("Internal Server Error");
+  }
+}); 
+
 router.post("/chat/completions", async (req, res) => {
   const authorization = req.headers["authorization"];
   if (!authorization) {
