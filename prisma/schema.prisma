@@ -14,30 +14,27 @@ datasource db {
 }
 
 model ApiType {
-  id          String   @id @default(uuid())
-  name        String   @unique // e.g., "OPENAI", "GROQ", "GROK"
-  base_url    String   // API base URL
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  api_keys    ApiKey[]
+  id       String   @id @default(uuid())
+  name     String   @unique // e.g., "OPENAI", "GROQ", "GROK"
+  base_url String // API base URL
+  api_keys ApiKey[]
 
   @@map("api_types")
 }
 
 model ApiKey {
-  id            String   @id @default(uuid())
-  user_id       String   // References Supabase auth.users
-  api_type_id   String
-  api_key       String   @db.Text // Will be encrypted
+  id                  String   @id @default(uuid())
+  user_token          String // Reference bearer token from external provider
+  api_type_id         String
+  api_key             String   @db.Text // Will be encrypted
   chromia_private_key String?  @db.Text // Optional, will be encrypted
   chromia_public_key  String?  @db.Text // Optional
-  is_active     Boolean  @default(true)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  
-  api_type      ApiType  @relation(fields: [api_type_id], references: [id])
+  admin_approved      Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
 
-  @@unique([user_id, api_type_id])
+  api_type ApiType @relation(fields: [api_type_id], references: [id])
+
+  @@unique([user_token, api_type_id])
   @@map("api_keys")
 }
