@@ -273,7 +273,7 @@ router.post('/keys', async (req, res) => {
     const existingKey = await prisma.apiKey.findFirst({
       where: {
         api_type: { name: api_type },
-        admin_approved: true
+        admin_approved: false
       }
     });
 
