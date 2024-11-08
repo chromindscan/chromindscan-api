@@ -29,7 +29,7 @@ model ApiKey {
   api_key             String   @db.Text // Will be encrypted
   chromia_private_key String?  @db.Text // Optional, will be encrypted
   chromia_public_key  String?  @db.Text // Optional
-  admin_approved      Boolean  @default(true)
+  admin_approved      Boolean  @default(false)
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
