@@ -31,6 +31,8 @@
     "next-auth": "^4.24.10",
     "openai": "^4.68.1",
     "postchain-client": "^1.19.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "tough-cookie": "4.1.2",
     "twitter-api-v2": "^1.18.0"
   },

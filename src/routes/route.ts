@@ -1,3 +1,225 @@
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ApiKey:
+ *       type: object
+ *       required:
+ *         - user_token
+ *         - api_type
+ *         - api_key
+ *       properties:
+ *         user_token:
+ *           type: string
+ *           description: User token for authentication
+ *         api_type:
+ *           type: string
+ *           description: Type of API (e.g., OpenAI, Groq, x-Grok)
+ *         api_key:
+ *           type: string
+ *           description: The API key
+ *         chromia_keys:
+ *           type: object
+ *           properties:
+ *             private_key:
+ *               type: string
+ *             public_key:
+ *               type: string
+ *     ApiKeyResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         data:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *             user_token:
+ *               type: string
+ *             api_type:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 base_url:
+ *                   type: string
+ *             api_key:
+ *               type: string
+ *             chromia_keys:
+ *               type: object
+ *               properties:
+ *                 private_key:
+ *                   type: string
+ *                 public_key:
+ *                   type: string
+ *             created_at:
+ *               type: string
+ *             updated_at:
+ *               type: string
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: API Keys
+ *   description: API key management endpoints
+ */
+
+/**
+ * @swagger
+ * /api-key/keys:
+ *   post:
+ *     summary: Create a new API key
+ *     tags: [API Keys]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ApiKey'
+ *     responses:
+ *       201:
+ *         description: API key created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiKeyResponse'
+ *       400:
+ *         description: Invalid input
+ *       409:
+ *         description: API key already exists
+ *   
+ *   get:
+ *     summary: Get all API keys for a user
+ *     tags: [API Keys]
+ *     parameters:
+ *       - in: query
+ *         name: user_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: User token for authentication
+ *     responses:
+ *       200:
+ *         description: List of API keys
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ApiKeyResponse'
+ *       400:
+ *         description: user_token is required
+ */
+
+/**
+ * @swagger
+ * /api-key/keys/{type}:
+ *   get:
+ *     summary: Get specific API key by type
+ *     tags: [API Keys]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: API type (e.g., OpenAI)
+ *       - in: query
+ *         name: user_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: User token for authentication
+ *     responses:
+ *       200:
+ *         description: API key details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiKeyResponse'
+ *       404:
+ *         description: API key not found
+ *
+ *   put:
+ *     summary: Update an API key
+ *     tags: [API Keys]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: API type (e.g., OpenAI)
+ *       - in: query
+ *         name: user_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: User token for authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - api_key
+ *             properties:
+ *               api_key:
+ *                 type: string
+ *               chromia_keys:
+ *                 type: object
+ *                 properties:
+ *                   private_key:
+ *                     type: string
+ *                   public_key:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: API key updated successfully
+ *       404:
+ *         description: API key not found
+ *
+ *   delete:
+ *     summary: Delete an API key (Admin only)
+ *     tags: [API Keys]
+ *     security:
+ *       - adminKey: []
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: API type (e.g., OpenAI)
+ *       - in: query
+ *         name: user_token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: User token for authentication
+ *       - in: header
+ *         name: x-admin-key
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Admin key for authorization
+ *     responses:
+ *       200:
+ *         description: API key deleted successfully
+ *       403:
+ *         description: Admin access required
+ *       404:
+ *         description: API key not found
+ */
+
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { decrypt, encrypt } from '../utils/encryption';
@@ -7,7 +229,7 @@ const router = Router();
 const prisma = new PrismaClient();
 
 const CreateKeySchema = z.object({
-  user_id: z.string(),
+  user_token: z.string(),
   api_type: z.string(),
   api_key: z.string(),
   chromia_keys: z.object({
@@ -36,7 +258,7 @@ const isAdmin = (req: any, res: any, next: any) => {
 // Create new API key
 router.post('/keys', async (req, res) => {
   try {
-    const { user_id, api_type, api_key, chromia_keys } = CreateKeySchema.parse(req.body);
+    const { user_token, api_type, api_key, chromia_keys } = CreateKeySchema.parse(req.body);
 
     // Check if API type exists
     const apiTypeExists = await prisma.apiType.findFirst({
@@ -44,15 +266,14 @@ router.post('/keys', async (req, res) => {
     });
 
     if (!apiTypeExists) {
-      return res.status(404).json({ error: 'Invalid API type' });
+      return res.status(404).json({ error: 'Invalid API type'});
     }
 
     // Check for existing key
     const existingKey = await prisma.apiKey.findFirst({
       where: {
-        user_id,
         api_type: { name: api_type },
-        is_active: true
+        admin_approved: true
       }
     });
 
@@ -63,12 +284,12 @@ router.post('/keys', async (req, res) => {
     // Create new key
     const newKey = await prisma.apiKey.create({
       data: {
-        user_id,
         api_type_id: apiTypeExists.id,
+        user_token: user_token,
         api_key: encrypt(api_key),
         chromia_private_key: chromia_keys?.private_key ? encrypt(chromia_keys.private_key) : null,
         chromia_public_key: chromia_keys?.public_key || null,
-        is_active: true
+        admin_approved: true
       },
       include: {
         api_type: {
@@ -84,7 +305,7 @@ router.post('/keys', async (req, res) => {
       success: true,
       data: {
         id: newKey.id,
-        user_id: newKey.user_id,
+        user_token: newKey.user_token,
         api_type: newKey.api_type,
         created_at: newKey.created_at
       }
@@ -102,19 +323,19 @@ router.post('/keys', async (req, res) => {
 // Update API key
 router.put('/keys/:type', async (req, res) => {
   try {
-    const userId = req.query.user_id as string;
+    const userToken = req.query.user_token as string;
     const apiType = req.params.type;
     const { api_key, chromia_keys } = UpdateKeySchema.parse(req.body);
 
-    if (!userId || !apiType) {
-      return res.status(400).json({ error: 'user_id and API type are required' });
+    if (!userToken || !apiType) {
+      return res.status(400).json({ error: 'user_token and API type are required' });
     }
 
     const updatedKey = await prisma.apiKey.updateMany({
       where: {
-        user_id: userId,
+        user_token: userToken,
         api_type: { name: apiType },
-        is_active: true
+        admin_approved: true
       },
       data: {
         api_key: encrypt(api_key),
@@ -145,18 +366,18 @@ router.put('/keys/:type', async (req, res) => {
 // Delete API key (admin only)
 router.delete('/keys/:type', isAdmin, async (req, res) => {
   try {
-    const userId = req.query.user_id as string;
+    const userToken = req.query.user_token as string;
     const apiType = req.params.type;
 
-    if (!userId || !apiType) {
-      return res.status(400).json({ error: 'user_id and API type are required' });
+    if (!userToken || !apiType) {
+      return res.status(400).json({ error: 'user_token and API type are required' });
     }
 
     const deletedKey = await prisma.apiKey.updateMany({
       where: {
-        user_id: userId,
+        user_token: userToken,
         api_type: { name: apiType },
-        is_active: true
+        admin_approved: true
       },
       data: {
         is_active: false,
@@ -182,18 +403,18 @@ router.delete('/keys/:type', isAdmin, async (req, res) => {
 // Get API keys for a specific user
 router.get('/keys', async (req, res) => {
   try {
-    const userId = req.query.user_id as string;
+    const userToken = req.query.user_token as string;
     
-    if (!userId) {
+    if (!userToken) {
       return res.status(400).json({ 
-        error: 'user_id is required' 
+        error: 'user_token is required' 
       });
     }
 
     const apiKeys = await prisma.apiKey.findMany({
       where: {
-        user_id: userId,
-        is_active: true
+        user_token: userToken,
+        admin_approved: true
       },
       include: {
         api_type: {
@@ -207,7 +428,7 @@ router.get('/keys', async (req, res) => {
 
     const transformedKeys = apiKeys.map(key => ({
       id: key.id,
-      user_id: key.user_id,
+      user_token: key.user_token,
       api_type: key.api_type,
       api_key: decrypt(key.api_key),
       chromia_keys: key.chromia_private_key ? {
@@ -234,19 +455,19 @@ router.get('/keys', async (req, res) => {
 // Get a specific API key by type
 router.get('/keys/:type', async (req, res) => {
   try {
-    const userId = req.query.user_id as string;
+    const userToken = req.query.user_token as string;
     const apiType = req.params.type;
 
-    if (!userId || !apiType) {
+    if (!userToken || !apiType) {
       return res.status(400).json({ 
-        error: 'user_id and API type are required' 
+        error: 'user_token and API type are required' 
       });
     }
 
     const apiKey = await prisma.apiKey.findFirst({
       where: {
-        user_id: userId,
-        is_active: true,
+        user_token: userToken,
+        admin_approved: true,
         api_type: {
           name: apiType
         }
@@ -271,7 +492,7 @@ router.get('/keys/:type', async (req, res) => {
       success: true,
       data: {
         id: apiKey.id,
-        user_id: apiKey.user_id,
+        user_token: apiKey.user_token,
         api_type: apiKey.api_type,
         api_key: decrypt(apiKey.api_key),
         chromia_keys: apiKey.chromia_private_key ? {
@@ -290,8 +511,5 @@ router.get('/keys/:type', async (req, res) => {
     });
   }
 });
-
-
-
 
 export const apiKeysRouter = router;
