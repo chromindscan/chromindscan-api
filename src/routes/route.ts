@@ -33,6 +33,7 @@ const isAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
+// Create user API key
 router.post('/keys', async (req, res) => {
   try {
     const { user_token, api_type, api_key, chromia_keys } = CreateKeySchema.parse(req.body);
@@ -186,7 +187,7 @@ router.delete('/keys/:type', isAdmin, async (req, res) => {
   }
 });
 
-// Get API keys for a specific user
+// Get user credentials
 router.get('/keys', async (req, res) => {
   try {
     const userToken = req.query.user_token as string;
@@ -229,6 +230,7 @@ router.get('/keys', async (req, res) => {
       success: true,
       data: transformedKeys
     });
+
 
   } catch (error) {
     console.error('Error fetching API keys:', error);
