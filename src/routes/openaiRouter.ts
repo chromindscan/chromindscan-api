@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { Router, Request, Response } from "express";
 import { addLog } from "../models/chromia";
-import { openAIApiMiddleware } from "../middlewares/OpenAIApiMiddleware";
+import { openAIApiMiddleware } from "../middlewares/openAIApiMiddleware";
 import { newSignatureProvider } from "postchain-client";
 
 const router = Router();
