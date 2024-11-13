@@ -1,7 +1,7 @@
 {
   "name": "server",
   "scripts": {
-    "start": "bun run main.ts"
+    "start": "bun run src/main.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

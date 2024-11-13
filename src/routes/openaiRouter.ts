@@ -1,6 +1,8 @@
 import OpenAI from "openai";
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { addLog } from "../models/chromia";
+import { openAIApiMiddleware } from "../middlewares/OpenAIApiMiddleware";
+import { newSignatureProvider } from "postchain-client";
 
 const router = Router();
 
@@ -8,54 +10,44 @@ router.get("/", (req, res) => {
   res.send("OpenAI Compatible Router on Chromia");
 });
 
-router.get("/models", async (req, res) => {
-  const authorization = req.headers["authorization"];
-  if (!authorization) {
-    res.status(401).send("Unauthorized");
-    return;
-  } 
+router.get(
+  "/models",
+  openAIApiMiddleware,
+  async (req: Request, res: Response) => {
+    const { apiKey, baseUrl } = req.apiData!;
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      baseURL: baseUrl,
+    });
 
-  const openAIBaseUrl =
-    req.headers["x-openai-base-url"] || "https://api.openai.com/v1";
-  const baseURL = typeof openAIBaseUrl === "string" ? openAIBaseUrl : openAIBaseUrl[0];
-
-  const openai = new OpenAI({
-    apiKey: authorization.replace("Bearer ", ""),
-    baseURL,
-  });
-
-  try {
-    const response = await openai.models.list();
-    res.json(response);
-  } catch (error) {
-    console.error("Error forwarding request to OpenAI API:", error);
-    res.status(500).send("Internal Server Error");
+    try {
+      const response = await openai.models.list();
+      res.json(response);
+    } catch (error) {
+      console.error("Error forwarding request to OpenAI API:", error);
+      res.status(500).send("Internal Server Error");
+    }
   }
-}); 
+);
 
-router.post("/chat/completions", async (req, res) => {
-  const authorization = req.headers["authorization"];
-  if (!authorization) {
-    res.status(401).send("Unauthorized");
-    return;
-  }
-  const openAIBaseUrl =
-    req.headers["x-openai-base-url"] || "https://api.openai.com/v1";
-  const baseURL =
-    typeof openAIBaseUrl === "string" ? openAIBaseUrl : openAIBaseUrl[0];
+router.post("/chat/completions", openAIApiMiddleware, async (req: Request, res: Response) => {
 
+  const { apiKey, baseUrl, privateKey } = req.apiData!;
   const openai = new OpenAI({
-    apiKey: authorization.replace("Bearer ", ""),
-    baseURL,
+    apiKey,
+    baseURL: baseUrl,
   });
 
   try {
     const requestBody = req.body;
     const response = await openai.chat.completions.create(requestBody);
 
+    const signatureProvider = newSignatureProvider({
+      privKey: privateKey
+    });
     await addLog({
       chat_id: response.id,
-      base_url: baseURL,
+      base_url: baseUrl,
       request_model: requestBody.model,
       request_messages: JSON.stringify(requestBody.messages),
       user_question: requestBody.messages[0].content,
@@ -71,7 +63,9 @@ router.post("/chat/completions", async (req, res) => {
       assistant_reply: response.choices[0].message.content || "",
       finish_reason: response.choices[0].finish_reason,
       response_raw: JSON.stringify(response),
-    });
+    },
+    signatureProvider
+  );
 
     res.json(response);
   } catch (error) {
