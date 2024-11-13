@@ -2,12 +2,10 @@ import {
   createClient,
   newSignatureProvider,
   IClient,
+  SignatureProvider,
 } from "postchain-client";
 
 let chromiaClient: IClient;
-const signatureProvider = newSignatureProvider({
-  privKey: process.env.CHROMIA_PRIVATE_KEY!,
-});
 
 const initClient = async () => {
   if (chromiaClient) {
@@ -59,7 +57,7 @@ export async function addLog({
   assistant_reply,
   finish_reason,
   response_raw,
-}: OpenAILog) {
+}: OpenAILog, provider: SignatureProvider) {
   const client = await initClient();
   await client.signAndSendUniqueTransaction(
     {
@@ -84,6 +82,6 @@ export async function addLog({
         response_raw,
       ],
     },
-    signatureProvider
+    provider
   );
 }
